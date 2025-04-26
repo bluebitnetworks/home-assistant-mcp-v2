@@ -1,0 +1,73 @@
+{# Light card template #}
+{% macro light_card(entity_id, name=None, icon=None) %}
+type: light
+entity: {{ entity_id }}
+{% if name %}name: {{ name }}{% endif %}
+{% if icon %}icon: {{ icon }}{% endif %}
+{% endmacro %}
+
+{# Climate card template #}
+{% macro climate_card(entity_id, name=None, icon=None) %}
+type: thermostat
+entity: {{ entity_id }}
+{% if name %}name: {{ name }}{% endif %}
+{% if icon %}icon: {{ icon }}{% endif %}
+{% endmacro %}
+
+{# Weather card template #}
+{% macro weather_card(entity_id, name=None, forecast=true) %}
+type: weather-forecast
+entity: {{ entity_id }}
+{% if name %}name: {{ name }}{% endif %}
+forecast: {{ forecast | lower }}
+{% endmacro %}
+
+{# Media player card template #}
+{% macro media_card(entity_id, name=None, icon=None) %}
+type: media-control
+entity: {{ entity_id }}
+{% if name %}name: {{ name }}{% endif %}
+{% if icon %}icon: {{ icon }}{% endif %}
+{% endmacro %}
+
+{# Sensor card template #}
+{% macro sensor_card(entity_id, name=None, icon=None, unit=None, graph='line') %}
+type: sensor
+entity: {{ entity_id }}
+{% if name %}name: {{ name }}{% endif %}
+{% if icon %}icon: {{ icon }}{% endif %}
+{% if unit %}unit: {{ unit }}{% endif %}
+graph: {{ graph }}
+{% endmacro %}
+
+{# Entities card template #}
+{% macro entities_card(entities, title=None, show_header_toggle=true) %}
+type: entities
+{% if title %}title: {{ title }}{% endif %}
+show_header_toggle: {{ show_header_toggle | lower }}
+entities:
+{% for entity in entities %}
+  - {{ entity }}
+{% endfor %}
+{% endmacro %}
+
+{# Glance card template #}
+{% macro glance_card(entities, title=None, columns=None, show_name=true, show_state=true) %}
+type: glance
+{% if title %}title: {{ title }}{% endif %}
+{% if columns %}columns: {{ columns }}{% endif %}
+show_name: {{ show_name | lower }}
+show_state: {{ show_state | lower }}
+entities:
+{% for entity in entities %}
+  - {{ entity }}
+{% endfor %}
+{% endmacro %}
+
+{# Markdown card template #}
+{% macro markdown_card(content, title=None) %}
+type: markdown
+{% if title %}title: {{ title }}{% endif %}
+content: |
+  {{ content | indent(2) }}
+{% endmacro %}

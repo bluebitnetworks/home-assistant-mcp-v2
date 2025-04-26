@@ -1,0 +1,22 @@
+# Home Assistant MCP Configuration
+
+# Home Assistant connection settings
+home_assistant:
+  url: "http://homeassistant.local:8123"  # Your Home Assistant URL
+  token: ""                               # Your Long-Lived Access Token
+  verify_ssl: true                        # Set to false if using self-signed certificates
+  
+# Dashboard generation settings
+dashboard:
+  default_theme: "default"                # Theme for generated dashboards
+  default_icon: "mdi:home-assistant"      # Default icon for cards without specified icons
+  
+# Automation settings
+automation:
+  suggestion_threshold: 3                 # Minimum occurrences before suggesting an automation
+  max_suggestions: 5                      # Maximum number of suggestions to generate
+  
+# Logging settings
+logging:
+  level: "INFO"                           # Logging level: DEBUG, INFO, WARNING, ERROR
+  file: "hass_mcp.log"                    # Log file location

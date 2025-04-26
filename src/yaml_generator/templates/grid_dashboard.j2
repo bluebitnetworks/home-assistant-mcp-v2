@@ -1,0 +1,14 @@
+title: {{ title }}
+views:
+  - title: {{ title }}
+    path: {{ path | default('main') }}
+    panel: {{ panel | default(false) }}
+    icon: {{ icon | default('mdi:view-grid') }}
+    cards:
+      - type: grid
+        columns: {{ columns | default(3) }}
+        square: {{ square | default(false) }}
+        cards:
+          {% for card in cards %}
+          - {{ card | to_yaml }}
+          {% endfor %}

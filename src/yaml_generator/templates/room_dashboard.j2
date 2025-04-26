@@ -1,0 +1,15 @@
+title: {{ title }}
+views:
+  {% for room in rooms %}
+  - title: {{ room.name }}
+    path: {{ room.path | default(room.name | lower | replace(' ', '_')) }}
+    icon: {{ room.icon | default('mdi:home') }}
+    badges: 
+      {% for badge in room.badges | default([]) %}
+      - {{ badge }}
+      {% endfor %}
+    cards:
+      {% for card in room.cards %}
+      - {{ card | to_yaml }}
+      {% endfor %}
+  {% endfor %}

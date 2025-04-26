@@ -1,0 +1,10 @@
+title: {{ title }}
+views:
+  - title: {{ title }}
+    path: {{ path | default('main') }}
+    icon: {{ icon | default('mdi:home-assistant') }}
+    badges: {{ badges | default([]) }}
+    cards:
+      {% for card in cards %}
+      - {{ card | to_yaml }}
+      {% endfor %}

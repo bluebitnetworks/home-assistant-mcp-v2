@@ -1,0 +1,61 @@
+# Sample Home Assistant configuration.yaml template for testing
+# This template includes common configuration sections and elements
+
+homeassistant:
+  name: Home Assistant
+  latitude: !secret latitude
+  longitude: !secret longitude
+  elevation: !secret elevation
+  unit_system: metric
+  time_zone: !secret time_zone
+  currency: USD
+
+# Core configuration
+default_config:
+frontend:
+  themes: !include themes.yaml
+
+# HTTP configuration
+http:
+  ssl_certificate: !secret ssl_certificate
+  ssl_key: !secret ssl_key
+
+# Optional customizations  
+customize: !include customize.yaml
+
+# Includes for other configuration files
+automation: !include automations.yaml
+script: !include scripts.yaml
+scene: !include scenes.yaml
+sensor: !include sensors.yaml
+
+# Lovelace configuration
+lovelace:
+  mode: yaml
+  resources:
+    - url: /local/my-custom-card.js
+      type: module
+
+# Example integrations
+light:
+  - platform: group
+    name: Living Room Lights
+    entities:
+      - light.living_room_lamp_1
+      - light.living_room_lamp_2
+      - light.living_room_ceiling
+
+climate:
+  - platform: generic_thermostat
+    name: Living Room Thermostat
+    heater: switch.heating_living_room
+    target_sensor: sensor.living_room_temperature
+    min_temp: 15
+    max_temp: 25
+    target_temp: 20
+
+# Example recorder configuration
+recorder:
+  db_url: !secret db_url
+  purge_keep_days: 30
+  commit_interval: 30

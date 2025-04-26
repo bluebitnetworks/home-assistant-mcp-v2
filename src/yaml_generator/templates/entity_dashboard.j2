@@ -1,0 +1,25 @@
+title: {{ title }}
+views:
+  {% for domain, entities in domains.items() %}
+  - title: {{ domain | title }}
+    path: {{ domain | lower }}
+    icon: {{ domain_icons[domain] | default('mdi:circle') }}
+    badges: 
+      {% for badge in domain_badges[domain] | default([]) %}
+      - {{ badge }}
+      {% endfor %}
+    cards:
+      {% for entity_group in entities | batch(entities_per_card | default(8)) %}
+      - type: entities
+        title: {{ domain | title }} {{ loop.index }}
+        show_header_toggle: {{ show_header_toggle | default(true) }}
+        entities:
+          {% for entity in entity_group %}
+          - entity: {{ entity.entity_id }}
+            name: {{ entity.name | default(entity.entity_id) }}
+            {% if entity.icon %}
+            icon: {{ entity.icon }}
+            {% endif %}
+          {% endfor %}
+      {% endfor %}
+  {% endfor %}
