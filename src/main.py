@@ -154,7 +154,12 @@ async def async_main():
     config = load_config()
     
     # Import modules here to avoid circular imports
-    from src.claude_integration.mcp import HomeAssistantMCP
+    try:
+        # Try relative imports first (for development)
+        from .claude_integration.mcp import HomeAssistantMCP
+    except ImportError:
+        # Fall back to absolute imports (for production/Railway)
+        from src.claude_integration.mcp import HomeAssistantMCP
     
     # Initialize the MCP interface
     mcp = HomeAssistantMCP(config)

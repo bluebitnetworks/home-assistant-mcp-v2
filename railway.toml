@@ -1,0 +1,8 @@
+[build]
+builder = "nixpacks"
+buildCommand = "pip install -e ."
+
+[deploy]
+startCommand = "python -m src.web_api_v3"
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 10

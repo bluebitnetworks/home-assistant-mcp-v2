@@ -34,8 +34,14 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Import Home Assistant MCP components
-from src.main import load_config
-from src.claude_integration.mcp import HomeAssistantMCP
+try:
+    # Try relative imports first (for development)
+    from .main import load_config
+    from .claude_integration.mcp import HomeAssistantMCP
+except ImportError:
+    # Fall back to absolute imports (for production/Railway)
+    from src.main import load_config
+    from src.claude_integration.mcp import HomeAssistantMCP
 
 # Initialize the MCP interface
 config = load_config()
@@ -204,8 +210,15 @@ def run_server():
     reload = os.getenv("DEBUG", "False").lower() == "true"
     
     logger.info(f"Starting Home Assistant MCP REST API on {host}:{port}")
+    # Use module name format for uvicorn
+    module_name = "src.web_api_v3:app"
+    
+    # Check if we're running as a module
+    if __name__ != "__main__":
+        module_name = "web_api_v3:app"
+    
     uvicorn.run(
-        "src.web_api_v3:app",
+        module_name,
         host=host,
         port=port,
         reload=reload,
