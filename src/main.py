@@ -15,6 +15,10 @@ import time
 import signal
 import asyncio
 from pathlib import Path
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # Setup logging
 logging.basicConfig(
@@ -32,7 +36,7 @@ sys.path.insert(0, str(root_dir))
 
 def load_config(config_path=None):
     """
-    Load configuration from the config.yaml file.
+    Load configuration from the config.yaml file or environment variables.
     
     Args:
         config_path (str, optional): Path to the config file. Defaults to None,
@@ -41,17 +45,41 @@ def load_config(config_path=None):
     Returns:
         dict: Configuration dictionary
     """
+    # Initialize default config structure
+    config = {
+        "home_assistant": {
+            "url": os.getenv("HA_URL"),
+            "token": os.getenv("HA_TOKEN"),
+            "verify_ssl": os.getenv("HA_VERIFY_SSL", "true").lower() == "true"
+        }
+    }
+    
+    # If all required env vars are set, use them
+    if config["home_assistant"]["url"] and config["home_assistant"]["token"]:
+        logger.info("Configuration loaded from environment variables")
+        return config
+        
+    # Otherwise try to load from config file
     if config_path is None:
         config_path = root_dir / "config.yaml"
     
     try:
         with open(config_path, 'r') as file:
-            config = yaml.safe_load(file)
-        logger.info(f"Configuration loaded from {config_path}")
+            file_config = yaml.safe_load(file)
+            # Merge with any env vars that might be set
+            if "home_assistant" in file_config:
+                if not config["home_assistant"]["url"]:
+                    config["home_assistant"]["url"] = file_config["home_assistant"].get("url")
+                if not config["home_assistant"]["token"]:
+                    config["home_assistant"]["token"] = file_config["home_assistant"].get("token")
+                if "HA_VERIFY_SSL" not in os.environ and "verify_ssl" in file_config["home_assistant"]:
+                    config["home_assistant"]["verify_ssl"] = file_config["home_assistant"]["verify_ssl"]
+            
+        logger.info(f"Configuration loaded from {config_path} and environment variables")
         return config
     except FileNotFoundError:
-        logger.error(f"Configuration file not found at {config_path}")
-        logger.info("Please create a config.yaml file from the template")
+        logger.error(f"Configuration file not found at {config_path} and environment variables are incomplete")
+        logger.info("Please create a config.yaml file from the template or set environment variables")
         sys.exit(1)
     except yaml.YAMLError as e:
         logger.error(f"Error parsing configuration file: {e}")

@@ -13,9 +13,14 @@ import asyncio
 import uvicorn
 from pathlib import Path
 from typing import Dict, List, Any, Optional, Union
-from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks, status
+from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks, status, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # Add root directory to path
 root_dir = Path(__file__).parent.parent
@@ -46,11 +51,29 @@ app = FastAPI(
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Adjust this in production
+    allow_origins=[os.getenv("CORS_ORIGINS", "*").split(",")],  # Use env var or default to all
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# API Key middleware
+@app.middleware("http")
+async def api_key_middleware(request: Request, call_next):
+    # Skip API key check for root endpoint
+    if request.url.path == "/":
+        return await call_next(request)
+        
+    api_key = os.getenv("API_KEY")
+    # Only check if API_KEY is set
+    if api_key and api_key != "":
+        request_api_key = request.headers.get("X-API-Key")
+        if not request_api_key or request_api_key != api_key:
+            return JSONResponse(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                content={"detail": "Invalid or missing API key"}
+            )
+    return await call_next(request)
 
 # ------ Pydantic Models ------
 
@@ -174,11 +197,15 @@ async def config_control(request: ConfigRequest):
 
 # ------ Server ------
 
-def run_server(host="0.0.0.0", port=8080, reload=False):
+def run_server():
     """Run the FastAPI server."""
+    host = os.getenv("HOST", "0.0.0.0")
+    port = int(os.getenv("PORT", 8080))
+    reload = os.getenv("DEBUG", "False").lower() == "true"
+    
     logger.info(f"Starting Home Assistant MCP REST API on {host}:{port}")
     uvicorn.run(
-        "web_api_v3:app",
+        "src.web_api_v3:app",
         host=host,
         port=port,
         reload=reload,
