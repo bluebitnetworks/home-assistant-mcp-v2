@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home Assistant MCP Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.2/font/bootstrap-icons.min.css">
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2c3e50;
+            --light-bg: #f5f5f5;
+            --light-card: #ffffff;
+            --light-text: #333333;
+            --light-border: #eaeaea;
+            --light-highlight: #fffacd;
+            --dark-bg: #121212;
+            --dark-card: #1e1e1e;
+            --dark-secondary: #2d2d2d;
+            --dark-text: #e0e0e0;
+            --dark-border: #333333;
+            --dark-highlight: #3d3a17;
+        }
+        
+        body {
+            padding-top: 20px;
+            background-color: var(--light-bg);
+            color: var(--light-text);
+            transition: background-color 0.3s, color 0.3s;
+        }
+        
+        body.dark-mode {
+            background-color: var(--dark-bg);
+            color: var(--dark-text);
+        }
+        
+        .card {
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            background-color: var(--light-card);
+            transition: background-color 0.3s, color 0.3s;
+        }
+        
+        .dark-mode .card {
+            background-color: var(--dark-card);
+            color: var(--dark-text);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        
+        .card-header {
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        
+        .dark-mode .card-header {
+            background-color: var(--dark-secondary);
+            color: var(--dark-text);
+            border-color: var(--dark-border);
+        }
+        
+        .entity-item {
+            padding: 10px;
+            border-bottom: 1px solid var(--light-border);
+            transition: background-color 0.3s;
+        }
+        
+        .dark-mode .entity-item {
+            border-bottom: 1px solid var(--dark-border);
+        }
+        
+        .entity-item:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .dark-mode .entity-item:hover {
+            background-color: #252525;
+        }
+        
+        .entity-item.updated {
+            animation: highlight 2s;
+        }
+        
+        @keyframes highlight {
+            0% { background-color: var(--light-highlight); }
+            100% { background-color: transparent; }
+        }
+        
+        .dark-mode .entity-item.updated {
+            animation: dark-highlight 2s;
+        }
+        
+        @keyframes dark-highlight {
+            0% { background-color: var(--dark-highlight); }
+            100% { background-color: transparent; }
+        }
+        
+        #connectionStatus {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+        
+        .status-connected {
+            background-color: #28a745;
+        }
+        
+        .status-disconnected {
+            background-color: #dc3545;
+        }
+        .event-log {
+            height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+            background-color: #272822;
+            color: #f8f8f2;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .log-info {
+            color: #a6e22e;
+        }
+        .log-error {
+            color: #f92672;
+        }
+        .log-warning {
+            color: #fd971f;
+        }
+        .log-success {
+            color: #66d9ef;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="connectionStatus" class="badge bg-secondary">
+            <span class="status-indicator status-disconnected"></span>
+            Disconnected
+        </div>
+        
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <div class="d-flex align-items-center">
+                    <div id="logo-container" class="me-4" style="width: 80px; height: 80px; border-radius: 8px; overflow: hidden; border: 1px solid var(--light-border);">
+                        <img id="logo" src="https://via.placeholder.com/80x80?text=LOGO" alt="Logo" style="width: 100%; height: 100%; object-fit: contain;">
+                    </div>
+                    <div>
+                        <h1>Home Assistant MCP Dashboard</h1>
+                        <p class="lead m-0">Connected to <span id="hostname" class="fw-bold">home.corson.io</span></p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 text-end">
+                <button id="darkModeToggle" class="btn btn-outline-secondary me-2">
+                    <i class="bi bi-moon-fill"></i> Toggle Dark Mode
+                </button>
+                <a href="/api/docs" target="_blank" class="btn btn-outline-primary">
+                    <i class="bi bi-file-earmark-text"></i> API Docs
+                </a>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Tools Status Column -->
+            <div class="col-md-12 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        MCP Tools Status
+                        <button id="refreshTools" class="btn btn-sm btn-outline-primary float-end">
+                            <i class="bi bi-arrow-clockwise"></i> Refresh
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="row" id="toolsList">
+                            <div class="text-center text-muted">
+                                Loading MCP tools...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Entities Column -->
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        Entities
+                        <button id="refreshEntities" class="btn btn-sm btn-outline-primary float-end">
+                            <i class="bi bi-arrow-clockwise"></i> Refresh
+                        </button>
+                    </div>
+                    <div class="card-body p-0">
+                        <div id="entitiesList" class="list-group list-group-flush">
+                            <div class="p-3 text-center text-muted">
+                                Loading entities...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- WebSocket Events Column -->
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        WebSocket Events
+                        <button id="clearEvents" class="btn btn-sm btn-outline-danger float-end">
+                            Clear
+                        </button>
+                    </div>
+                    <div class="card-body p-0">
+                        <div id="eventLog" class="event-log p-2">
+                            <div class="log-info">Initializing WebSocket connection...</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card mt-4">
+                    <div class="card-header">WebSocket Actions</div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="topicSubscribe" class="form-label">Subscribe to topic</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="topicSubscribe" placeholder="e.g., entities:updated">
+                                <button class="btn btn-primary" id="subscribeBtn">Subscribe</button>
+                            </div>
+                            <small class="text-muted">
+                                Examples: entities:updated, entity:light.living_room, automations:updated
+                            </small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="entityId" class="form-label">Get entity state</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="entityId" placeholder="Entity ID">
+                                <button class="btn btn-primary" id="getEntityBtn">Get State</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Entity Control Modal -->
+        <div class="modal fade" id="entityControlModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="entityControlModalTitle">Control Entity</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body" id="entityControlModalBody">
+                        <!-- Dynamically filled -->
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-primary" id="controlEntityBtn">Apply</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // API Configuration
+        const API_CONFIG = {
+            baseUrl: 'http://localhost:8080',  // Change this to match your API server
+            wsUrl: 'ws://localhost:8080/ws',   // WebSocket URL
+            apiKey: '',  // Add your API key if enabled
+            hostname: 'home.corson.io' // Set your hostname here
+        };
+        
+        // DOM Elements
+        const connectionStatus = document.getElementById('connectionStatus');
+        const entitiesList = document.getElementById('entitiesList');
+        const eventLog = document.getElementById('eventLog');
+        const refreshEntitiesBtn = document.getElementById('refreshEntities');
+        const refreshToolsBtn = document.getElementById('refreshTools');
+        const clearEventsBtn = document.getElementById('clearEvents');
+        const subscribeBtn = document.getElementById('subscribeBtn');
+        const topicSubscribeInput = document.getElementById('topicSubscribe');
+        const getEntityBtn = document.getElementById('getEntityBtn');
+        const entityIdInput = document.getElementById('entityId');
+        const entityControlModal = new bootstrap.Modal(document.getElementById('entityControlModal'));
+        const entityControlModalTitle = document.getElementById('entityControlModalTitle');
+        const entityControlModalBody = document.getElementById('entityControlModalBody');
+        const controlEntityBtn = document.getElementById('controlEntityBtn');
+        const darkModeToggle = document.getElementById('darkModeToggle');
+        const toolsList = document.getElementById('toolsList');
+        const hostnameElement = document.getElementById('hostname');
+        
+        // Variables
+        let websocket = null;
+        let currentEntityId = null;
+        let entities = {};
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            // Set hostname from config
+            hostnameElement.textContent = API_CONFIG.hostname;
+            
+            // Initialize dark mode from localStorage
+            initDarkMode();
+            
+            // Initialize WebSocket and fetch data
+            initWebSocket();
+            fetchEntities();
+            fetchTools();
+            
+            // Event listeners
+            refreshEntitiesBtn.addEventListener('click', fetchEntities);
+            refreshToolsBtn.addEventListener('click', fetchTools);
+            clearEventsBtn.addEventListener('click', () => eventLog.innerHTML = '');
+            subscribeBtn.addEventListener('click', subscribeTopic);
+            getEntityBtn.addEventListener('click', getEntityState);
+            controlEntityBtn.addEventListener('click', controlEntity);
+            darkModeToggle.addEventListener('click', toggleDarkMode);
+        });
+        
+        // Dark mode functions
+        function initDarkMode() {
+            const isDarkMode = localStorage.getItem('darkMode') === 'true';
+            if (isDarkMode) {
+                document.body.classList.add('dark-mode');
+                darkModeToggle.innerHTML = '<i class="bi bi-sun-fill"></i> Toggle Light Mode';
+            } else {
+                document.body.classList.remove('dark-mode');
+                darkModeToggle.innerHTML = '<i class="bi bi-moon-fill"></i> Toggle Dark Mode';
+            }
+        }
+        
+        function toggleDarkMode() {
+            const isDarkMode = document.body.classList.contains('dark-mode');
+            if (isDarkMode) {
+                document.body.classList.remove('dark-mode');
+                localStorage.setItem('darkMode', 'false');
+                darkModeToggle.innerHTML = '<i class="bi bi-moon-fill"></i> Toggle Dark Mode';
+            } else {
+                document.body.classList.add('dark-mode');
+                localStorage.setItem('darkMode', 'true');
+                darkModeToggle.innerHTML = '<i class="bi bi-sun-fill"></i> Toggle Light Mode';
+            }
+        }
+        
+        // Tools functions
+        async function fetchTools() {
+            try {
+                logEvent('Fetching MCP tools...', 'info');
+                toolsList.innerHTML = '<div class="text-center text-muted">Loading MCP tools...</div>';
+                
+                const response = await fetch(`${API_CONFIG.baseUrl}/api/schemas`, {
+                    method: 'GET',
+                    headers: {
+                        ...(API_CONFIG.apiKey && { 'X-API-Key': API_CONFIG.apiKey })
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error ${response.status}`);
+                }
+                
+                const schemas = await response.json();
+                
+                if (schemas && Object.keys(schemas).length > 0) {
+                    toolsList.innerHTML = '';
+                    
+                    // Create a card for each tool
+                    Object.entries(schemas).forEach(([toolName, schema]) => {
+                        const toolCol = document.createElement('div');
+                        toolCol.className = 'col-md-3 mb-3';
+                        
+                        const toolCard = document.createElement('div');
+                        toolCard.className = 'card h-100';
+                        
+                        const toolStatus = Math.random() > 0.2; // Simulate tool status (online/offline)
+                        
+                        const cardBody = document.createElement('div');
+                        cardBody.className = 'card-body';
+                        cardBody.innerHTML = `
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h5 class="card-title m-0">${formatToolName(toolName)}</h5>
+                                <span class="badge ${toolStatus ? 'bg-success' : 'bg-danger'}">
+                                    ${toolStatus ? 'Online' : 'Offline'}
+                                </span>
+                            </div>
+                            <p class="card-text small text-muted">${schema.description}</p>
+                        `;
+                        
+                        toolCard.appendChild(cardBody);
+                        toolCol.appendChild(toolCard);
+                        toolsList.appendChild(toolCol);
+                    });
+                    
+                    logEvent(`Loaded ${Object.keys(schemas).length} MCP tools`, 'success');
+                } else {
+                    toolsList.innerHTML = '<div class="col-12 text-center text-danger">No MCP tools available</div>';
+                    logEvent('No MCP tools available', 'warning');
+                }
+            } catch (error) {
+                console.error('Error fetching tools:', error);
+                toolsList.innerHTML = '<div class="col-12 text-center text-danger">Error loading MCP tools</div>';
+                logEvent(`Error fetching MCP tools: ${error.message}`, 'error');
+            }
+        }
+        
+        function formatToolName(toolName) {
+            // Convert snake_case or camelCase to Title Case with spaces
+            return toolName
+                .replace(/_/g, ' ')
+                .replace(/([A-Z])/g, ' $1')
+                .replace(/^./, str => str.toUpperCase())
+                .trim();
+        }
+        
+        // WebSocket Functions
+        function initWebSocket() {
+            logEvent('Connecting to WebSocket...', 'info');
+            
+            websocket = new WebSocket(API_CONFIG.wsUrl);
+            
+            websocket.onopen = (event) => {
+                updateConnectionStatus(true);
+                logEvent('WebSocket connection established', 'success');
+                
+                // Subscribe to entity updates by default
+                sendWebSocketMessage({
+                    action: 'subscribe',
+                    topic: 'entities:updated'
+                });
+                
+                // Send periodic pings to keep connection alive
+                setInterval(() => {
+                    if (websocket.readyState === WebSocket.OPEN) {
+                        sendWebSocketMessage({ action: 'ping' });
+                    }
+                }, 30000);
+            };
+            
+            websocket.onmessage = (event) => {
+                const message = JSON.parse(event.data);
+                
+                // Log all messages to event log
+                logEvent(`Received: ${JSON.stringify(message)}`, 'info');
+                
+                // Handle different message types
+                switch (message.type) {
+                    case 'message':
+                        handleTopicMessage(message);
+                        break;
+                    case 'entity_state':
+                        showEntityDetails(message.entity_id, message.data);
+                        break;
+                    case 'subscription_success':
+                        logEvent(`Subscribed to ${message.topic}`, 'success');
+                        break;
+                    case 'error':
+                        logEvent(`Error: ${message.message}`, 'error');
+                        break;
+                }
+            };
+            
+            websocket.onclose = (event) => {
+                updateConnectionStatus(false);
+                logEvent('WebSocket connection closed', 'warning');
+                
+                // Try to reconnect after a delay
+                setTimeout(() => {
+                    if (websocket.readyState === WebSocket.CLOSED) {
+                        initWebSocket();
+                    }
+                }, 5000);
+            };
+            
+            websocket.onerror = (error) => {
+                updateConnectionStatus(false);
+                logEvent('WebSocket error', 'error');
+                console.error('WebSocket error:', error);
+            };
+        }
+        
+        function sendWebSocketMessage(message) {
+            if (websocket && websocket.readyState === WebSocket.OPEN) {
+                websocket.send(JSON.stringify(message));
+                logEvent(`Sent: ${JSON.stringify(message)}`, 'info');
+            } else {
+                logEvent('Cannot send message: WebSocket not connected', 'error');
+            }
+        }
+        
+        function subscribeTopic() {
+            const topic = topicSubscribeInput.value.trim();
+            if (topic) {
+                sendWebSocketMessage({
+                    action: 'subscribe',
+                    topic: topic
+                });
+            } else {
+                logEvent('Please enter a topic to subscribe to', 'warning');
+            }
+        }
+        
+        function getEntityState() {
+            const entityId = entityIdInput.value.trim();
+            if (entityId) {
+                sendWebSocketMessage({
+                    action: 'get_entity',
+                    entity_id: entityId
+                });
+            } else {
+                logEvent('Please enter an entity ID', 'warning');
+            }
+        }
+        
+        function handleTopicMessage(message) {
+            if (message.topic === 'entities:updated') {
+                updateEntityInList(message.data.entity_id, message.data);
+            }
+        }
+        
+        // API Functions
+        async function fetchEntities() {
+            try {
+                logEvent('Fetching entities...', 'info');
+                entitiesList.innerHTML = '<div class="p-3 text-center text-muted">Loading entities...</div>';
+                
+                const response = await fetch(`${API_CONFIG.baseUrl}/api/entities`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(API_CONFIG.apiKey && { 'X-API-Key': API_CONFIG.apiKey })
+                    },
+                    body: JSON.stringify({
+                        action: 'get_entities'
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.success && data.entities) {
+                    entities = {};
+                    entitiesList.innerHTML = '';
+                    
+                    // Sort entities by domain and then by name
+                    const sortedEntities = data.entities.sort((a, b) => {
+                        const aDomain = a.entity_id.split('.')[0];
+                        const bDomain = b.entity_id.split('.')[0];
+                        
+                        if (aDomain === bDomain) {
+                            return a.entity_id.localeCompare(b.entity_id);
+                        }
+                        
+                        return aDomain.localeCompare(bDomain);
+                    });
+                    
+                    // Group entities by domain
+                    const domainGroups = {};
+                    
+                    sortedEntities.forEach(entity => {
+                        const domain = entity.entity_id.split('.')[0];
+                        
+                        if (!domainGroups[domain]) {
+                            domainGroups[domain] = [];
+                        }
+                        
+                        domainGroups[domain].push(entity);
+                        entities[entity.entity_id] = entity;
+                    });
+                    
+                    // Create DOM elements for each domain group
+                    Object.keys(domainGroups).sort().forEach(domain => {
+                        const domainEntities = domainGroups[domain];
+                        
+                        const domainHeader = document.createElement('div');
+                        domainHeader.className = 'bg-light p-2 fw-bold text-uppercase small';
+                        domainHeader.textContent = domain;
+                        entitiesList.appendChild(domainHeader);
+                        
+                        domainEntities.forEach(entity => {
+                            const entityItem = createEntityListItem(entity);
+                            entitiesList.appendChild(entityItem);
+                        });
+                    });
+                    
+                    logEvent(`Loaded ${data.entities.length} entities`, 'success');
+                } else {
+                    entitiesList.innerHTML = '<div class="p-3 text-center text-danger">Error loading entities</div>';
+                    logEvent('Failed to load entities', 'error');
+                }
+            } catch (error) {
+                console.error('Error fetching entities:', error);
+                entitiesList.innerHTML = '<div class="p-3 text-center text-danger">Error loading entities</div>';
+                logEvent(`Error fetching entities: ${error.message}`, 'error');
+            }
+        }
+        
+        async function controlEntity() {
+            if (!currentEntityId) return;
+            
+            const entity = entities[currentEntityId];
+            if (!entity) return;
+            
+            const domain = currentEntityId.split('.')[0];
+            let controlAction, parameters = {};
+            
+            // Get values from form
+            const actionSelect = document.getElementById('controlAction');
+            controlAction = actionSelect ? actionSelect.value : 'turn_on';
+            
+            // Get additional parameters based on entity type
+            const paramInputs = document.querySelectorAll('[data-param]');
+            paramInputs.forEach(input => {
+                parameters[input.dataset.param] = input.type === 'number' ? 
+                    parseFloat(input.value) : input.value;
+            });
+            
+            try {
+                logEvent(`Controlling entity ${currentEntityId} with action ${controlAction}`, 'info');
+                
+                const response = await fetch(`${API_CONFIG.baseUrl}/api/entities`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(API_CONFIG.apiKey && { 'X-API-Key': API_CONFIG.apiKey })
+                    },
+                    body: JSON.stringify({
+                        action: 'control_entity',
+                        entity_id: currentEntityId,
+                        control_action: controlAction,
+                        parameters: parameters
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    logEvent(`Successfully controlled entity ${currentEntityId}`, 'success');
+                    entityControlModal.hide();
+                } else {
+                    logEvent(`Failed to control entity: ${data.error || 'Unknown error'}`, 'error');
+                }
+            } catch (error) {
+                console.error('Error controlling entity:', error);
+                logEvent(`Error controlling entity: ${error.message}`, 'error');
+            }
+        }
+        
+        // UI Functions
+        function updateConnectionStatus(connected) {
+            connectionStatus.className = connected ? 'badge bg-success' : 'badge bg-danger';
+            connectionStatus.innerHTML = connected ? 
+                '<span class="status-indicator status-connected"></span>Connected' : 
+                '<span class="status-indicator status-disconnected"></span>Disconnected';
+        }
+        
+        function logEvent(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-${type}`;
+            logEntry.textContent = `[${timestamp}] ${message}`;
+            eventLog.appendChild(logEntry);
+            eventLog.scrollTop = eventLog.scrollHeight;
+        }
+        
+        function createEntityListItem(entity) {
+            const item = document.createElement('div');
+            item.className = 'entity-item d-flex justify-content-between align-items-center';
+            item.id = `entity-${entity.entity_id}`;
+            item.dataset.entityId = entity.entity_id;
+            
+            const nameDiv = document.createElement('div');
+            nameDiv.className = 'd-flex flex-column';
+            
+            const friendlyName = entity.attributes && entity.attributes.friendly_name ? 
+                entity.attributes.friendly_name : entity.entity_id;
+            
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'fw-bold';
+            nameSpan.textContent = friendlyName;
+            
+            const idSpan = document.createElement('small');
+            idSpan.className = 'text-muted';
+            idSpan.textContent = entity.entity_id;
+            
+            nameDiv.appendChild(nameSpan);
+            nameDiv.appendChild(idSpan);
+            
+            const stateDiv = document.createElement('div');
+            stateDiv.className = 'd-flex align-items-center';
+            
+            const stateSpan = document.createElement('span');
+            stateSpan.className = 'badge';
+            stateSpan.className += getEntityStateClass(entity);
+            stateSpan.textContent = entity.state;
+            
+            const controlBtn = document.createElement('button');
+            controlBtn.className = 'btn btn-sm btn-outline-primary ms-2';
+            controlBtn.innerHTML = '<i class="bi bi-sliders"></i>';
+            controlBtn.addEventListener('click', () => showEntityControl(entity.entity_id));
+            
+            stateDiv.appendChild(stateSpan);
+            stateDiv.appendChild(controlBtn);
+            
+            item.appendChild(nameDiv);
+            item.appendChild(stateDiv);
+            
+            return item;
+        }
+        
+        function updateEntityInList(entityId, entityData) {
+            // Update our local entity data
+            if (entities[entityId]) {
+                entities[entityId] = { ...entities[entityId], ...entityData };
+            }
+            
+            // Update DOM if the element exists
+            const entityElement = document.getElementById(`entity-${entityId}`);
+            if (entityElement) {
+                // Remove existing updated class to reset animation
+                entityElement.classList.remove('updated');
+                
+                // Get name div and update if needed
+                const nameDiv = entityElement.querySelector('div:first-child');
+                if (nameDiv) {
+                    const nameSpan = nameDiv.querySelector('span');
+                    if (nameSpan && entityData.attributes && entityData.attributes.friendly_name) {
+                        nameSpan.textContent = entityData.attributes.friendly_name;
+                    }
+                }
+                
+                // Update state badge
+                const stateSpan = entityElement.querySelector('.badge');
+                if (stateSpan && entityData.state) {
+                    stateSpan.className = 'badge ' + getEntityStateClass({ ...entities[entityId], state: entityData.state });
+                    stateSpan.textContent = entityData.state;
+                }
+                
+                // Add the updated class to trigger animation
+                entityElement.classList.add('updated');
+            } else {
+                // If it doesn't exist in the DOM but we have the data, we might want to refresh the whole list
+                // This could happen if a new entity was added
+                if (!entities[entityId] && entityData) {
+                    fetchEntities();
+                }
+            }
+        }
+        
+        function getEntityStateClass(entity) {
+            const domain = entity.entity_id.split('.')[0];
+            const state = entity.state;
+            
+            // Determine badge color based on entity type and state
+            switch(domain) {
+                case 'light':
+                case 'switch':
+                case 'automation':
+                    return state === 'on' ? 'bg-warning' : 'bg-secondary';
+                case 'binary_sensor':
+                    return state === 'on' ? 'bg-danger' : 'bg-secondary';
+                case 'sensor':
+                    return 'bg-info';
+                case 'climate':
+                    return state === 'off' ? 'bg-secondary' : 'bg-info';
+                default:
+                    return 'bg-primary';
+            }
+        }
+        
+        function showEntityControl(entityId) {
+            const entity = entities[entityId];
+            if (!entity) return;
+            
+            currentEntityId = entityId;
+            
+            const domain = entityId.split('.')[0];
+            const friendlyName = entity.attributes && entity.attributes.friendly_name ? 
+                entity.attributes.friendly_name : entityId;
+            
+            entityControlModalTitle.textContent = `Control ${friendlyName}`;
+            
+            // Create control form based on entity type
+            let controlForm = '';
+            
+            // Add action selection based on domain
+            controlForm += '<div class="mb-3">';
+            controlForm += '<label for="controlAction" class="form-label">Action</label>';
+            controlForm += '<select class="form-select" id="controlAction">';
+            
+            switch(domain) {
+                case 'light':
+                    controlForm += '<option value="turn_on">Turn On</option>';
+                    controlForm += '<option value="turn_off">Turn Off</option>';
+                    controlForm += '<option value="toggle">Toggle</option>';
+                    
+                    // Add brightness control if supported
+                    if (entity.attributes && entity.attributes.supported_features && (entity.attributes.supported_features & 1)) {
+                        controlForm += '</select></div>';
+                        controlForm += '<div class="mb-3">';
+                        controlForm += '<label for="brightness" class="form-label">Brightness</label>';
+                        controlForm += `<input type="range" class="form-range" min="0" max="255" value="${entity.attributes.brightness || 255}" id="brightness" data-param="brightness">`;
+                    }
+                    
+                    // Add color control if supported
+                    if (entity.attributes && entity.attributes.supported_features && (entity.attributes.supported_features & 16)) {
+                        controlForm += '</select></div>';
+                        controlForm += '<div class="mb-3">';
+                        controlForm += '<label for="colorTemp" class="form-label">Color Temperature</label>';
+                        controlForm += `<input type="range" class="form-range" min="${entity.attributes.min_mireds || 153}" max="${entity.attributes.max_mireds || 500}" value="${entity.attributes.color_temp || 300}" id="colorTemp" data-param="color_temp">`;
+                    }
+                    break;
+                
+                case 'switch':
+                case 'automation':
+                    controlForm += '<option value="turn_on">Turn On</option>';
+                    controlForm += '<option value="turn_off">Turn Off</option>';
+                    controlForm += '<option value="toggle">Toggle</option>';
+                    break;
+                
+                case 'climate':
+                    controlForm += '<option value="set_temperature">Set Temperature</option>';
+                    controlForm += '<option value="set_hvac_mode">Set Mode</option>';
+                    controlForm += '<option value="turn_on">Turn On</option>';
+                    controlForm += '<option value="turn_off">Turn Off</option>';
+                    
+                    // Add temperature control
+                    controlForm += '</select></div>';
+                    controlForm += '<div class="mb-3">';
+                    controlForm += '<label for="temperature" class="form-label">Temperature</label>';
+                    controlForm += `<input type="number" class="form-control" id="temperature" value="${entity.attributes.temperature || 21}" data-param="temperature">`;
+                    
+                    // Add mode selection
+                    if (entity.attributes && entity.attributes.hvac_modes) {
+                        controlForm += '</div><div class="mb-3">';
+                        controlForm += '<label for="hvacMode" class="form-label">Mode</label>';
+                        controlForm += '<select class="form-select" id="hvacMode" data-param="hvac_mode">';
+                        
+                        entity.attributes.hvac_modes.forEach(mode => {
+                            const selected = mode === entity.attributes.hvac_mode ? 'selected' : '';
+                            controlForm += `<option value="${mode}" ${selected}>${mode}</option>`;
+                        });
+                        
+                        controlForm += '</select>';
+                    }
+                    break;
+                
+                default:
+                    controlForm += '<option value="turn_on">Turn On</option>';
+                    controlForm += '<option value="turn_off">Turn Off</option>';
+            }
+            
+            if (!controlForm.endsWith('</select></div>')) {
+                controlForm += '</select></div>';
+            }
+            
+            entityControlModalBody.innerHTML = controlForm;
+            entityControlModal.show();
+        }
+        
+        function showEntityDetails(entityId, data) {
+            if (!data) {
+                logEvent(`No data available for entity ${entityId}`, 'warning');
+                return;
+            }
+            
+            logEvent(`Entity ${entityId}: state = ${data.state}`, 'info');
+            
+            // You could show a modal with full entity details
+            console.log('Entity details:', data);
+        }
+    </script>
+</body>
+</html>

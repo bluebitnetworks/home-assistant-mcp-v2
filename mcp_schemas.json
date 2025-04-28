@@ -1,0 +1,145 @@
+{
+  "home_assistant_entity_control": {
+    "description": "Control Home Assistant entities and view their states",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "enum": [
+            "get_entities",
+            "get_entity_state",
+            "control_entity"
+          ],
+          "description": "Action to perform on Home Assistant entities"
+        },
+        "entity_id": {
+          "type": "string",
+          "description": "Entity ID for get_entity_state and control_entity actions"
+        },
+        "control_action": {
+          "type": "string",
+          "description": "Control action for control_entity (e.g., 'turn_on', 'turn_off', 'set_temperature')"
+        },
+        "parameters": {
+          "type": "object",
+          "description": "Optional parameters for the control action"
+        }
+      },
+      "required": [
+        "action"
+      ]
+    }
+  },
+  "home_assistant_dashboard": {
+    "description": "Create and validate Home Assistant dashboards",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "enum": [
+            "create_dashboard",
+            "validate_dashboard"
+          ],
+          "description": "Action to perform with dashboards"
+        },
+        "title": {
+          "type": "string",
+          "description": "Dashboard title for create_dashboard"
+        },
+        "views": {
+          "type": "array",
+          "description": "Dashboard views configuration for create_dashboard"
+        },
+        "yaml_content": {
+          "type": "string",
+          "description": "YAML content to validate for validate_dashboard"
+        },
+        "output_path": {
+          "type": "string",
+          "description": "Optional output path for the dashboard YAML"
+        }
+      },
+      "required": [
+        "action"
+      ]
+    }
+  },
+  "home_assistant_automation": {
+    "description": "Manage Home Assistant automations, including suggestions, creation, and testing",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "enum": [
+            "get_automations",
+            "get_automation_details",
+            "create_automation",
+            "update_automation",
+            "delete_automation",
+            "test_automation",
+            "suggest_automations",
+            "get_entity_automations"
+          ],
+          "description": "Action to perform with automations"
+        },
+        "automation_id": {
+          "type": "string",
+          "description": "Automation ID for specific automation actions"
+        },
+        "entity_id": {
+          "type": "string",
+          "description": "Entity ID for get_entity_automations"
+        },
+        "automation_yaml": {
+          "type": "string",
+          "description": "Automation YAML content for create/update/test"
+        },
+        "days": {
+          "type": "integer",
+          "description": "Number of days of history to analyze for suggestions"
+        }
+      },
+      "required": [
+        "action"
+      ]
+    }
+  },
+  "home_assistant_config": {
+    "description": "Test and validate Home Assistant configurations",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "enum": [
+            "validate_config",
+            "test_config",
+            "check_config_dependencies"
+          ],
+          "description": "Action to perform with configurations"
+        },
+        "config_type": {
+          "type": "string",
+          "enum": [
+            "dashboard",
+            "automation",
+            "script",
+            "sensor"
+          ],
+          "description": "Type of configuration to validate/test"
+        },
+        "config_yaml": {
+          "type": "string",
+          "description": "Configuration YAML content to validate/test"
+        }
+      },
+      "required": [
+        "action",
+        "config_type"
+      ]
+    }
+  }
+}

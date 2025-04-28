@@ -71,6 +71,7 @@ Home Assistant MCP provides the following tools for Claude:
 
 ## Project Structure
 
+- `frontend-next/`: Next.js + React + TailwindCSS frontend application
 - `src/connection/`: Home Assistant API connection module
 - `src/yaml_generator/`: YAML configuration generator for dashboards
 - `src/testing/`: Configuration testing and validation tools
@@ -78,6 +79,25 @@ Home Assistant MCP provides the following tools for Claude:
 - `src/claude_integration/`: Claude MCP tool integration
 - `tests/`: Test files for each module
 - `docs/`: Detailed documentation
+
+### Client SDK
+A private TypeScript SDK is included under `packages/client-sdk`.  
+
+**Install & Build**:  
+```bash
+cd packages/client-sdk
+npm install
+npm run build
+```
+
+**Usage**:  
+```ts
+import { MCPClient } from '@home-assistant/mcp-client-sdk';
+```
+
+**Environment Variables**:  
+- `HA_MCP_API_URL` — Base URL for Home Assistant MCP HTTP API  
+- `HA_MCP_TOKEN` — Access token for authentication
 
 ## Contributing
 

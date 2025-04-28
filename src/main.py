@@ -11,6 +11,9 @@ import sys
 import logging
 import json
 import yaml
+import time
+import signal
+import asyncio
 from pathlib import Path
 
 # Setup logging
@@ -73,9 +76,49 @@ def save_mcp_schemas(schemas, output_path=None):
     except Exception as e:
         logger.error(f"Failed to save MCP schemas: {e}")
 
-def main():
+# Global variable to track shutdown signal
+shutdown_requested = False
+
+# Signal handler for graceful shutdown
+def signal_handler(sig, frame):
+    global shutdown_requested
+    logger.info(f"Received signal {sig}, initiating shutdown...")
+    shutdown_requested = True
+
+async def keep_alive(mcp):
     """
-    Main entry point for the Home Assistant MCP.
+    Keep the MCP service running and handle periodic tasks
+    """
+    global shutdown_requested
+    
+    logger.info("MCP service is now running continuously...")
+    
+    # Validate Home Assistant connection periodically
+    while not shutdown_requested:
+        try:
+            # Check Home Assistant connection every 60 seconds
+            is_valid, error = await mcp.api.validate_connection()
+            if not is_valid:
+                logger.warning(f"Home Assistant connection issue: {error}")
+            else:
+                logger.debug("Home Assistant connection validated")
+                
+            # Wait before checking again, but allow for interruption
+            for _ in range(60):
+                if shutdown_requested:
+                    break
+                await asyncio.sleep(1)
+        except Exception as e:
+            logger.error(f"Error in keep_alive loop: {e}")
+            await asyncio.sleep(10)  # Wait a bit before retrying
+    
+    logger.info("Exiting keep_alive loop")
+    # Cleanup
+    await mcp.api.close()
+
+async def async_main():
+    """
+    Async version of the main entry point
     """
     logger.info("Starting Home Assistant MCP")
     
@@ -97,7 +140,19 @@ def main():
     for tool_name in schemas.keys():
         logger.info(f"- {tool_name}")
     
-    return mcp
+    # Keep the service running
+    await keep_alive(mcp)
+
+def main():
+    """
+    Main entry point for the Home Assistant MCP.
+    """
+    # Register signal handlers for graceful shutdown
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+    
+    # Run the async main function
+    asyncio.run(async_main())
 
 if __name__ == "__main__":
     main()

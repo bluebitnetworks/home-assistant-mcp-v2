@@ -1,0 +1,23 @@
+[Unit]
+Description=Home Assistant MCP Service
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+# Adjust the following paths to match your installation
+WorkingDirectory=/path/to/home-assistant-mcp-v2
+ExecStart=/path/to/home-assistant-mcp-v2/venv/bin/python /path/to/home-assistant-mcp-v2/src/main.py
+Restart=on-failure
+RestartSec=10s
+TimeoutStartSec=120
+TimeoutStopSec=120
+StandardOutput=journal
+StandardError=journal
+
+# Make sure to set proper environment variables if needed
+# Environment=VAR1=value1 VAR2=value2
+
+[Install]
+WantedBy=multi-user.target
