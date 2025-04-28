@@ -12,7 +12,7 @@ const API_KEY = process.env.NEXT_PUBLIC_MCP_API_KEY || '';
 /**
  * Make an API request to the MCP backend
  */
-async function fetchFromMcp(endpoint: string, method: string = 'GET', data?: any) {
+async function fetchFromMcp(endpoint: string, method: string = 'GET', data?: Record<string, unknown>) {
   const url = `${API_BASE_URL}${endpoint}`;
   
   const headers: HeadersInit = {
@@ -72,7 +72,7 @@ export async function getEntity(entityId: string) {
 /**
  * Control an entity (turn on/off, etc.)
  */
-export async function controlEntity(entityId: string, action: string, parameters?: Record<string, any>) {
+export async function controlEntity(entityId: string, action: string, parameters?: Record<string, unknown>) {
   return fetchFromMcp('/api/entities', 'POST', {
     action: 'control',
     entity_id: entityId,
